@@ -65,8 +65,13 @@ function createClient(t) {
 /**
  * Creates a test NAPI server, and returns a client for accessing it
  */
-function createClientAndServer(callback) {
-    mod_server._create({}, function (err, res) {
+function createClientAndServer(opts, callback) {
+    if (callback === undefined) {
+        callback = opts;
+        opts = {};
+    }
+
+    mod_server._create(opts, function (err, res) {
         if (err) {
             return callback(err);
         }

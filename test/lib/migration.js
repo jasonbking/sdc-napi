@@ -18,7 +18,7 @@ var assert = require('assert-plus');
 var config = require('./config');
 var fmt = require('util').format;
 var log = require('./log');
-var mod_moray = require('moray');
+var mock_moray = require('moray-sandbox');
 var mod_server = require('./server');
 var mod_vasync = require('vasync');
 var napi_moray = require('../../lib/apis/moray');
@@ -49,24 +49,28 @@ function closeClient(t) {
 
 function getMorayClient(callback) {
     if (MORAY_CLIENT) {
-        return callback(null, MORAY_CLIENT);
+        callback(null, MORAY_CLIENT);
+        return;
     }
 
     assert.object(config, 'config');
     assert.object(config.moray, 'config.moray');
     assert.func(callback, 'callback');
 
-    MORAY_CLIENT = mod_moray.createClient({
-        host: config.moray.host,
-        log: log.child({
-            component: 'moray-migrate',
-            level: process.env.LOG_LEVEL || 'fatal'
-        }),
-        port: config.moray.port
+    var log_child = log.child({
+        component: 'moray-migrate',
+        level: process.env.LOG_LEVEL || 'fatal'
     });
 
-    MORAY_CLIENT.once('connect', function _afterConnect() {
-        return callback(null, MORAY_CLIENT);
+    mock_moray.create(log_child, function (err, moray) {
+        if (err) {
+            callback(err);
+            return;
+        }
+
+        MORAY_CLIENT = moray;
+        moray.on('error', callback);
+        moray.on('connect', function () { callback(null, moray); });
     });
 }
 
@@ -289,6 +293,7 @@ module.exports = {
     closeClient: closeClient,
     delAllCreated: delAllCreatedBuckets,
     delAllPrevious: delAllPreviousTestBuckets,
+    getMorayClient: getMorayClient,
     getMorayObj: getMorayObject,
     initBucket: initTestBucket,
     run: runMigrations
