@@ -20,7 +20,6 @@ var common = require('../lib/common');
 var constants = require('../../lib/util/constants');
 var h = require('./helpers');
 var mod_err = require('../../lib/util/errors');
-var mod_moray = require('../lib/moray');
 var mod_net = require('../lib/net');
 var mod_nic = require('../lib/nic');
 var mod_tag = require('../lib/nic-tag');
@@ -37,6 +36,7 @@ var vasync = require('vasync');
 
 
 
+var MORAY;
 var NAPI;
 var NETS = [];
 var POOLS = [];
@@ -93,10 +93,13 @@ function createNet(t, extra) {
 
 
 test('Initial setup', function (t) {
-    h.createClientAndServer(function (err, res) {
+    h.createClientAndServer(function (err, res, moray) {
         t.ifError(err, 'server creation');
         t.ok(res, 'client');
+        t.ok(moray, 'moray');
+
         NAPI = res;
+        MORAY = moray;
 
         if (!NAPI) {
             return t.end();
@@ -387,12 +390,13 @@ test('Update pool: remove owner_uuids', function (t) {
             delete POOLS[1].owner_uuids;
             t2.deepEqual(res, POOLS[1], 'owner_uuids removed');
 
-            var morayObj = mod_moray.getObj('napi_network_pools',
-                POOLS[1].uuid);
-
-            t2.ok(!morayObj.hasOwnProperty('owner_uuids'),
-                'owner_uuids property no longer present in moray');
-            return t2.end();
+            MORAY.getObject('napi_network_pools', POOLS[1].uuid,
+                function (err2, morayObj) {
+                t2.ifError(err2, 'Getting pool should succeed');
+                t2.ok(!morayObj.value.hasOwnProperty('owner_uuids'),
+                    'owner_uuids property no longer present in moray');
+                t2.end();
+            });
         });
     });
 
@@ -418,14 +422,15 @@ test('Update pool: remove owner_uuids', function (t) {
             POOLS[1].owner_uuids = params.owner_uuids.sort();
             t2.deepEqual(res, POOLS[1], 'owner_uuids added');
 
-            var morayObj = mod_moray.getObj('napi_network_pools',
-                POOLS[1].uuid);
-            t2.ok(morayObj, 'got moray object');
-
-            t2.equal(morayObj.owner_uuids, ','
-                + params.owner_uuids.sort().join(',') + ',',
-                'owner_uuids updated in moray');
-            return t2.end();
+            MORAY.getObject('napi_network_pools', POOLS[1].uuid,
+                function (err2, morayObj) {
+                t2.ifError(err2, 'Getting pool should succeed');
+                t2.ok(morayObj, 'got moray object');
+                t2.equal(morayObj.value.owner_uuids, ','
+                    + params.owner_uuids.sort().join(',') + ',',
+                    'owner_uuids updated in moray');
+                t2.end();
+            });
         });
     });
 

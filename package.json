@@ -25,10 +25,9 @@
     "verror": "1.6.1"
   },
   "devDependencies": {
+    "moray-sandbox": "git+https://github.com/joyent/node-moray-sandbox.git#5c23f2a",
     "eslint": "2.13.1",
     "eslint-plugin-joyent": "1.0.1",
-    "crc": "0.2.1",
-    "ldapjs": "0.5.7",
     "xtend": "4.0.0"
   },
   "scripts": {
