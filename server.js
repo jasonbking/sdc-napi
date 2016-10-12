@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2015, Joyent, Inc.
+ * Copyright 2016, Joyent, Inc.
  */
 
 /*
@@ -24,6 +24,25 @@ var log = bunyan.createLogger({
     level: 'debug',
     serializers: restify.bunyan.serializers
 });
+
+
+function runGC() {
+    var start = process.memoryUsage();
+    start.time = Date.now();
+    global.gc();
+    var end = process.memoryUsage();
+    end.time = Date.now();
+    log.info({ start: start, end: end },
+        'Ran garbage collector for %d milliseconds', start.time - end.time);
+}
+
+
+var gcPeriod = 8 * 60 * 60 * 1000; // 8 hours
+if (global.gc) {
+    log.info({ period: gcPeriod },
+        'Access to GC detected; will periodically force collection');
+    setInterval(runGC, gcPeriod);
+}
 
 
 function exitOnError(err) {
