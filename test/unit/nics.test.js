@@ -385,6 +385,12 @@ test('Create nic - invalid params', function (t) {
                 owner_uuid: owner, network_uuid: NET.uuid, state: 'running' },
                 [ mod_err.invalidParam('belongs_to_type', BAD_TYPE_ERRMSG) ] ],
 
+        [ 'nic_tag must be a string',
+            { ip: '10.0.2.3', belongs_to_type: type, belongs_to_uuid: uuid,
+                owner_uuid: owner, vlan_id: NET.vlan_id, nic_tag: 4,
+                state: 'running' },
+                [ mod_err.invalidParam('nic_tag', constants.msg.STR) ] ],
+
         [ 'state must be a valid value',
             { ip: '10.0.2.3', belongs_to_type: type, belongs_to_uuid: uuid,
                 owner_uuid: owner, network_uuid: NET.uuid, state: 'deleted' },
