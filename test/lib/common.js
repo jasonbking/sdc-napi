@@ -290,6 +290,7 @@ function afterAPIcall(t, opts, callback, err, obj, _, res) {
     }
 
     if (opts.reqType === 'create') {
+        assert.notEqual('s', opts.type.slice(-1));
         addToState(opts, opts.type + 's', obj);
     }
 
@@ -415,6 +416,11 @@ function afterAPIlist(t, opts, callback, err, obj, _, res) {
  */
 function allCreated(type) {
     return CREATED[type] || [];
+}
+
+
+function clearCreated(type) {
+    CREATED[type] = [];
 }
 
 
@@ -607,6 +613,7 @@ module.exports = {
     allCreated: allCreated,
     assertArgs: assertArgs,
     badLimitOffTests: badLimitOffTests,
+    clearCreated: clearCreated,
     commonErrors: commonErrors,
     createClient: createClient,
     doneErr: doneErr,

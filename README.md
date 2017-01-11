@@ -150,11 +150,17 @@ ensure all unit and integration tests pass before checkin.
 
 ## Running unit tests
 
-To run all tests:
+The unit tests require having Postgres installed. On Mac OS X and SmartOS, you
+can install it with:
+
+    pkgin in postgresql92-server postgresql92-client
+
+To run all of the unit tests:
 
     make test
 
-To run an individual test:
+This will also output code coverage information into `coverage/`. To run an
+individual test:
 
     ./test/runtest ./test/unit/testname.test.js
 
