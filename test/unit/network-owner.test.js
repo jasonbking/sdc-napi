@@ -18,6 +18,7 @@ var constants = require('../../lib/util/constants');
 var helpers = require('./helpers');
 var mod_err = require('../../lib/util/errors');
 var mod_nic = require('../lib/nic');
+var mod_server = require('../lib/server');
 var mod_uuid = require('node-uuid');
 var test = require('tape');
 var util_ip = require('../../lib/util/ip');
@@ -311,6 +312,8 @@ function updatePoolFailure(uuid, params, invalidNets, t) {
 
 
 test('setup', function (t) {
+    helpers.reset();
+
     t.plan(7);
 
     t.test('create client and server', function (t2) {
@@ -901,9 +904,4 @@ test('reserve', function (t) {
 
 
 
-test('Stop server', function (t) {
-    helpers.stopServer(function (err) {
-        t.ifError(err, 'server stop');
-        t.end();
-    });
-});
+test('Stop server', mod_server.close);

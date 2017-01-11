@@ -162,6 +162,8 @@ function delAllCreatedNics(t) {
         return t.end();
     }
 
+    common.clearCreated('nics');
+
     mod_vasync.forEachParallel({
         inputs: created,
         func: function _delOne(nic, cb) {

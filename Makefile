@@ -16,7 +16,8 @@
 # Tools
 #
 
-TAPE	:= ./node_modules/.bin/tape
+ISTANBUL	:= node_modules/.bin/istanbul
+FAUCET		:= node_modules/.bin/faucet
 
 #
 # Files
@@ -64,24 +65,23 @@ INSTDIR         := $(PKGDIR)/root/opt/smartdc/napi
 #
 
 .PHONY: all
-all: $(SMF_MANIFESTS) | $(TAPE) $(REPO_DEPS) sdc-scripts
+all: $(SMF_MANIFESTS) | $(NPM_EXEC) $(REPO_DEPS) sdc-scripts
 	$(NPM) install
 
 $(ESLINT): | $(NPM_EXEC)
 	$(NPM) install
 
-$(TAPE): | $(NPM_EXEC)
+$(ISTANBUL): | $(NPM_EXEC)
 	$(NPM) install
 
-CLEAN_FILES += $(TAPE) ./node_modules/tape
+$(FAUCET): | $(NPM_EXEC)
+	$(NPM) install
+
+CLEAN_FILES += ./node_modules/tape
 
 .PHONY: test
-test: $(TAPE)
-	@(for F in test/unit/*.test.js; do \
-		echo "# $$F" ;\
-		$(NODE_EXEC) $(TAPE) $$F ;\
-		[[ $$? == "0" ]] || exit 1; \
-	done)
+test: $(ISTANBUL) $(FAUCET)
+	$(ISTANBUL) cover --print none test/unit/run.js | $(FAUCET)
 
 #
 # Packaging targets

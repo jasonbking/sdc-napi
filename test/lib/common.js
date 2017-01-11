@@ -418,6 +418,11 @@ function allCreated(type) {
 }
 
 
+function clearCreated(type) {
+    CREATED[type] = [];
+}
+
+
 /**
  * Assert the arguments to one of the helper functions are correct
  */
@@ -607,6 +612,7 @@ module.exports = {
     allCreated: allCreated,
     assertArgs: assertArgs,
     badLimitOffTests: badLimitOffTests,
+    clearCreated: clearCreated,
     commonErrors: commonErrors,
     createClient: createClient,
     doneErr: doneErr,

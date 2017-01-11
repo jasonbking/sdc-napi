@@ -146,6 +146,8 @@ function delAllCreatedNets(t) {
         return t.end();
     }
 
+    common.clearCreated('networks');
+
     mod_vasync.forEachParallel({
         inputs: created,
         func: function _delOne(net, cb) {
