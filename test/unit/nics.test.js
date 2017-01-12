@@ -128,6 +128,23 @@ test('Initial setup', function (t) {
         });
     });
 
+    t.test('create net4', function (t2) {
+        num = h.NET_NUM;
+        var params = h.validIPv6NetworkParams({
+            gateway: util.format('fd00:%s::e40e', num),
+            vlan_id: 47
+        });
+        mod_net.create(t2, {
+            params: params,
+            partialExp: params
+        }, function (_, res) {
+            NET4 = res;
+            NET4.num = num;
+
+            return t2.end();
+        });
+    });
+
     t.test('create admin net', function (t2) {
         num = h.NET_NUM;
         var params = h.validNetworkParams({ name: 'admin' });
@@ -353,12 +370,25 @@ test('Create nic - invalid params', function (t) {
                     constants.fmt.IP_OUTSIDE, fmt('10.0.%d.1', NET.num + 1),
                     NET.uuid)) ] ],
 
+        [ 'IPv6 instead of IPv4 address in "ip" field',
+            { ip: 'fd00::42', belongs_to_type: type,
+                belongs_to_uuid: uuid, owner_uuid: owner,
+                network_uuid: NET.uuid },
+                [ mod_err.invalidParam('ip', constants.IPV4_REQUIRED) ] ],
+
         [ 'IP specified, but not nic_tag or vlan_id',
             { ip: '10.0.2.2', belongs_to_type: type, belongs_to_uuid: uuid,
                 owner_uuid: owner },
                 [ h.missingParam('nic_tag', constants.msg.IP_NO_VLAN_TAG),
                 h.missingParam('vlan_id', constants.msg.IP_NO_VLAN_TAG) ],
                 'Missing parameters' ],
+
+        [ 'IPv6 network in network_uuid',
+            { ip: '10.0.2.2', belongs_to_type: type,
+                belongs_to_uuid: uuid, owner_uuid: owner,
+                network_uuid: NET4.uuid },
+                [ mod_err.invalidParam('network_uuid', util.format(
+                    constants.fmt.NET_BAD_AF, 'IPv4')) ] ],
 
         [ 'Non-existent network',
             { ip: '10.0.2.2', belongs_to_type: type, belongs_to_uuid: uuid,
