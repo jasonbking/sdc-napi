@@ -1242,6 +1242,8 @@ if it matches *all* of the input parameters.
 
 | Field            | Type    | Description                                                    |
 | ---------------- | ------- | -------------------------------------------------------------- |
+| name             | String  | Return network pools that match the pool name                  |
+| networks         | Array   | Return network pools that contain the given network UUID       |
 | provisionable_by | UUID    | Return network pools that are provisionable by this owner_uuid |
 | offset           | Integer | Starting offset, see [Pagination](#pagination)                 |
 | limit            | Integer | Maximum number of responses, see [Pagination](#pagination)     |
@@ -1278,6 +1280,7 @@ Creates a new logical network provisioning pool.
 | Field       | Type           | Description                                                          |
 | ----------- | -------------- | -------------------------------------------------------------------- |
 | name        | String         | network provisioning pool name                                       |
+| description | String         | Description of the new network pool                                  |
 | networks    | Array of UUIDs | Logical Network UUIDs                                                |
 | owner_uuids | Array of UUIDs | UFDS user UUIDs allowed to provision on this network pool (Optional) |
 

@@ -70,6 +70,26 @@ function netParams(extra) {
     return h.validNetworkParams(params);
 }
 
+function v6netParams(extra) {
+    if (!extra) {
+        extra = {};
+    }
+
+    var l = NETS.length;
+    var params = {
+        name: 'net' + l,
+        // Ensure the networks sort in order of creation:
+        uuid: util.format('%d%d%d%d7862-54fa-4667-89ae-c981cd5ada9a',
+            l, l, l, l)
+    };
+
+    for (var e in extra) {
+        params[e] = extra[e];
+    }
+
+    return h.validIPv6NetworkParams(params);
+}
+
 
 function createNet(t, extra) {
     if (!extra) {
@@ -123,12 +143,12 @@ test('Initial setup', function (t) {
 
         t.test('create net0', function (t2) {
             NAPI.createNetwork(net1Params, function (err2, res2) {
-                t2.ifErr(err2);
                 if (res2) {
                     NETS.push(res2);
                 }
 
-                return t.end();
+                t2.ifErr(err2);
+                t2.end();
             });
         });
 
@@ -152,23 +172,47 @@ test('Initial setup', function (t) {
             createNet(t2);
         });
 
+        t.test('create net6', function (t2) {
+            NAPI.createNetwork(v6netParams(), function (err2, res2) {
+                if (res2) {
+                    NETS.push(res2);
+                }
+
+                t2.ifErr(err2);
+                t2.end();
+            });
+        });
+
+        t.test('create net7', function (t2) {
+            NAPI.createNetwork(v6netParams(), function (err2, res2) {
+                if (res2) {
+                    NETS.push(res2);
+                }
+
+                t2.ifErr(err2);
+                t2.end();
+            });
+        });
+
         t.test('create pool1', function (t2) {
             var name = 'pool1-' + process.pid;
             var params = {
+                description: 'This is pool 1',
                 networks: [ NETS[0].uuid, NETS[1].uuid, NETS[2].uuid ]
             };
 
             NAPI.createNetworkPool(name, params, function (err2, res2) {
-                t.ifErr(err2);
-                if (!err2) {
+                if (res2) {
                     POOLS.push(res2);
                     params.name = name;
                     params.uuid = res2.uuid;
                     params.nic_tag = NETS[0].nic_tag;
+                    params.family = 'ipv4';
                     t2.deepEqual(res2, params, 'result');
                 }
 
-                return t2.end();
+                t2.ifErr(err2);
+                t2.end();
             });
         });
 
@@ -180,17 +224,64 @@ test('Initial setup', function (t) {
             };
 
             NAPI.createNetworkPool(name, params, function (err2, res2) {
-                if (!err2) {
+                if (res2) {
                     POOLS.push(res2);
                     params.name = name;
                     params.uuid = res2.uuid;
                     params.nic_tag = NETS[4].nic_tag;
+                    params.family = 'ipv4';
                     t2.deepEqual(res2, params, 'result');
                 }
 
-                return t2.end();
+                t2.ifErr(err2);
+                t2.end();
             });
         });
+
+        t.test('create pool3', function (t2) {
+            var name = 'pool3-' + process.pid;
+            var params = {
+                networks: [ NETS[6].uuid, NETS[7].uuid ],
+                owner_uuids: [ mod_uuid.v4() ]
+            };
+
+            NAPI.createNetworkPool(name, params, function (err2, res2) {
+                if (res2) {
+                    POOLS.push(res2);
+                    params.name = name;
+                    params.uuid = res2.uuid;
+                    params.nic_tag = NETS[6].nic_tag;
+                    params.family = 'ipv6';
+                    t2.deepEqual(res2, params, 'result');
+                }
+
+                t2.ifErr(err2);
+                t2.end();
+            });
+        });
+
+        t.test('create pool4', function (t2) {
+            var name = 'pool4-' + process.pid;
+            var params = {
+                networks: [ NETS[0].uuid, NETS[1].uuid ]
+            };
+
+            NAPI.createNetworkPool(name, params, function (err2, res2) {
+                if (res2) {
+                    POOLS.push(res2);
+                    params.name = name;
+                    params.uuid = res2.uuid;
+                    params.nic_tag = NETS[0].nic_tag;
+                    params.family = 'ipv4';
+                    t2.deepEqual(res2, params, 'result');
+                }
+
+                t2.ifErr(err2);
+                t2.end();
+            });
+        });
+
+        t.end();
     });
 });
 
@@ -304,6 +395,31 @@ test('Create pool - invalid params (non-objects)', function (t) {
 });
 
 
+test('Create pool - mismatched address families', function (t) {
+    var params = {
+        networks: [ NETS[0].uuid, NETS[6].uuid ]
+    };
+
+    NAPI.createNetworkPool('pool-fail-3-' + process.pid, params,
+        function (err, res) {
+        t.ok(err, 'error returned');
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, h.invalidParamErr({
+            errors: [ mod_err.invalidParam('networks',
+                constants.POOL_AF_MATCH_MSG) ]
+        }), 'error body');
+
+        t.end();
+    });
+});
+
+
+
 
 // --- Update tests
 
@@ -367,6 +483,54 @@ test('Update pool: no networks', function (t) {
         }), 'error body');
 
         return t.end();
+    });
+});
+
+
+test('Update IPv4 pool - mismatched address families', function (t) {
+    var params = {
+        networks: [ NETS[0].uuid, NETS[1].uuid, NETS[2].uuid, NETS[6].uuid ]
+    };
+
+    NAPI.updateNetworkPool(POOLS[0].uuid, params,
+        function (err, res) {
+        t.ok(err, 'error returned');
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, h.invalidParamErr({
+            errors: [ mod_err.invalidParam('networks',
+                constants.POOL_AF_MATCH_MSG) ]
+        }), 'error body');
+
+        t.end();
+    });
+});
+
+
+test('Update IPv6 pool - mismatched address families', function (t) {
+    var params = {
+        networks: [ NETS[0].uuid, NETS[6].uuid, NETS[7].uuid ]
+    };
+
+    NAPI.updateNetworkPool(POOLS[2].uuid, params,
+        function (err, res) {
+        t.ok(err, 'error returned');
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, h.invalidParamErr({
+            errors: [ mod_err.invalidParam('networks',
+                constants.POOL_AF_MATCH_MSG) ]
+        }), 'error body');
+
+        t.end();
     });
 });
 
@@ -568,6 +732,53 @@ test('List pools', function (t) {
     });
 });
 
+test('List pools - name filter', function (t) {
+    NAPI.listNetworkPools({ name: POOLS[0].name }, function (err, res) {
+        if (h.ifErr(t, err, 'failed to list pools')) {
+            t.end();
+            return;
+        }
+
+        t.deepEqual(res.length, 1, 'There should only be one pool');
+        t.deepEqual(res[0], POOLS[0], 'Correct pool returned');
+        t.end();
+    });
+});
+
+test('List pools - single network filter', function (t) {
+    NAPI.listNetworkPools({ networks: NETS[4].uuid }, function (err, res) {
+        if (h.ifErr(t, err, 'failed to list pools')) {
+            t.end();
+            return;
+        }
+
+        t.deepEqual(res.length, 1, 'There should only be one pool');
+        t.deepEqual(res[0], POOLS[1], 'Correct pool returned');
+        t.end();
+    });
+});
+
+test('List pools - filter with two networks', function (t) {
+    NAPI.listNetworkPools({ networks: [ POOLS[3].networks[0] ] },
+        function (err, res) {
+        if (h.ifErr(t, err, 'failed to list pools')) {
+            t.end();
+            return;
+        }
+
+        t.deepEqual(res.length, 2, 'There should be two pools');
+        t.end();
+    });
+});
+
+test('List pools - filter with three networks', function (t) {
+    NAPI.listNetworkPools({ networks: POOLS[0].networks }, function (err, res) {
+        t.ok(err, 'Searching with multiple networks should fail for now');
+        t.equal(res, null, 'There should be no results');
+        t.end();
+    });
+});
+
 test('List Network Pool failures', function (t) {
     t.plan(common.badLimitOffTests.length);
 
@@ -590,7 +801,7 @@ test('List Network Pool failures', function (t) {
 
 
 
-test('Provision nic - on network pool with IP', function (t) {
+test('Provision nic - on IPv4 network pool with IPv4 address', function (t) {
     var params = {
         belongs_to_type: 'zone',
         belongs_to_uuid: mod_uuid.v4(),
@@ -687,20 +898,40 @@ test('Provision nic - on network pool', function (t) {
 
 
 
-test('Delete network in pool', function (t) {
-    NAPI.deleteNetwork(NETS[0].uuid, function (err, res) {
+test('Delete network in IPv4 pool', function (t) {
+    NAPI.deleteNetwork(NETS[4].uuid, function (err, res) {
         t.ok(err, 'error returned');
         if (!err) {
-            return t.end();
+            t.end();
+            return;
         }
 
         t.equal(err.statusCode, 422, 'status code');
         t.deepEqual(err.body, {
             code: 'InUse',
             message: 'Network is in use',
-            errors: [ mod_err.usedBy('network pool', POOLS[0].uuid) ]
+            errors: [ mod_err.usedBy('network pool', POOLS[1].uuid) ]
         }, 'error body');
-        return t.end();
+        t.end();
+    });
+});
+
+
+test('Delete network in IPv6 pool', function (t) {
+    NAPI.deleteNetwork(NETS[6].uuid, function (err, res) {
+        t.ok(err, 'error returned');
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, {
+            code: 'InUse',
+            message: 'Network is in use',
+            errors: [ mod_err.usedBy('network pool', POOLS[2].uuid) ]
+        }, 'error body');
+        t.end();
     });
 });
 
