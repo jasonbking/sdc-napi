@@ -970,8 +970,9 @@ if it matches *all* of the input parameters.
 | Field             | Type                   | Description                                                |
 | ----------------- | ---------------------- | ---------------------------------------------------------- |
 | owner_uuid        | UUID                   | Nic Owner                                                  |
-| belongs_to_uuid   | UUID                   | The UUID of what this Nic belongs to                       |
+| belongs_to_uuid   | UUID                   | The UUID of what this NIC belongs to                       |
 | belongs_to_type   | String                 | The type that this belongs to (eg: 'zone', 'server')       |
+| cn_uuid           | String                 | The UUID of the Compute Node that the NIC is on            |
 | network_uuid      | String                 | The UUID of the network the NIC is on                      |
 | nic_tag           | String                 | The nic tag that this nic is on                            |
 | nic_tags_provided | Array of nic tag names | Nic tags provided by the nic                               |
