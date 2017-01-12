@@ -637,7 +637,7 @@ test('Create network where mtu == nic_tag == max', function (t) {
 });
 
 
-test('Create fabric network - non-private subnet', function (t) {
+test('Create IPv4 fabric network - non-private subnet', function (t) {
     NAPI.createNetwork(h.validNetworkParams({
         fabric: true,
         provision_start_ip: fmt('123.0.%d.1', h.NET_NUM),
@@ -647,7 +647,8 @@ test('Create fabric network - non-private subnet', function (t) {
         t.ok(err, 'error returned');
 
         if (!err) {
-            return t.end();
+            t.end();
+            return;
         }
 
         t.equal(err.statusCode, 422, 'status code');
@@ -659,9 +660,66 @@ test('Create fabric network - non-private subnet', function (t) {
             message: 'Invalid parameters'
         }), 'Error body');
 
-        return t.end();
+        t.end();
     });
 });
+
+
+test('Create IPv6 fabric network - non-private subnet', function (t) {
+    NAPI.createNetwork(h.validIPv6NetworkParams({
+        fabric: true,
+        provision_start_ip: fmt('fe80:%d::1', h.NET_NUM),
+        provision_end_ip: fmt('fe80:%d::ffff', h.NET_NUM),
+        subnet: fmt('fe80:%d::/64', h.NET_NUM)
+    }), function (err, res) {
+        t.ok(err, 'error returned');
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, h.invalidParamErr({
+            errors: [
+                mod_err.invalidParam('subnet',
+                    constants.PRIV_RANGE_ONLY)
+            ],
+            message: 'Invalid parameters'
+        }), 'Error body');
+
+        t.end();
+    });
+});
+
+
+test('Create IPv6 fabric network - disallowed for now', function (t) {
+    NAPI.createNetwork(h.validIPv6NetworkParams({
+        fabric: true,
+        provision_start_ip: fmt('fc89:%d::1', h.NET_NUM),
+        provision_end_ip: fmt('fc89:%d::ffff', h.NET_NUM),
+        subnet: fmt('fc89:%d::/64', h.NET_NUM)
+    }), function (err, res) {
+        t.ok(err, 'error returned');
+
+        if (!err) {
+            t.end();
+            return;
+        }
+
+        t.equal(err.statusCode, 422, 'status code');
+        t.deepEqual(err.body, h.invalidParamErr({
+            errors: [
+                mod_err.invalidParam('subnet',
+                    constants.FABRIC_IPV4_ONLY)
+            ],
+            message: 'Invalid parameters'
+        }), 'Error body');
+
+        t.end();
+    });
+});
+
+
 
 // --- Update tests
 

@@ -1340,7 +1340,7 @@ test('Update nic - provision IP', function (t) {
         });
     });
 
-    t.test('get IP', function (t2) {
+    t.test('get IPv4 address', function (t2) {
         mod_ip.get(t2, {
             net: NET3.uuid,
             ip: NET3.provision_start_ip,
@@ -1348,7 +1348,7 @@ test('Update nic - provision IP', function (t) {
                 belongs_to_type: d.exp.belongs_to_type,
                 belongs_to_uuid: d.exp.belongs_to_uuid,
                 free: false,
-                ip: d.exp.ip,
+                ip: NET3.provision_start_ip,
                 network_uuid: NET3.uuid,
                 owner_uuid: d.exp.owner_uuid,
                 reserved: false
