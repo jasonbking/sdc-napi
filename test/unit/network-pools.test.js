@@ -999,13 +999,16 @@ test('Provision nic - on network pool', function (t) {
             }
 
             var net = nextIPnum < 6 ? NETS[0] : NETS[1];
-            t.deepEqual(res, mod_nic.addDefaultParams({
+            var exp = mod_nic.addDefaultParams({
                 belongs_to_type: params.belongs_to_type,
                 belongs_to_uuid: params.belongs_to_uuid,
                 ip: nextIP,
                 mac: res.mac,
                 owner_uuid: params.owner_uuid
-            }, net), 'result for' + desc);
+            }, net);
+            exp.created_time = res.created_time;
+            exp.modified_time = res.modified_time;
+            t.deepEqual(res, exp, 'result for' + desc);
 
             var keepGoing = ipNums.length !== 0;
             return cb(null, null, keepGoing);

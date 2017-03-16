@@ -618,7 +618,24 @@ test('Create nic with resolver IP', function (t) {
     });
 });
 
+test('Check creation and modification', function (t) {
+    var params = {
+        belongs_to_type: 'server',
+        belongs_to_uuid: mod_uuid.v4(),
+        owner_uuid: mod_uuid.v4()
+    };
 
+    NAPI.provisionNic('admin', params, function (err, res) {
+        t.ifError(err, 'create on admin: provisioned');
+        if (err) {
+            return t.end();
+        }
+
+        t.true(res.created_time && res.created_time >= 0, 'creation time');
+        t.true(res.modified_time && res.modified_time === res.created_time, 'modified_time');
+        t.end();
+    });
+});
 
 // --- Provision tests
 
@@ -2279,6 +2296,90 @@ test('primary uniqueness', function (t) {
     });
 });
 
+test('Modification time updates are sane', function (t) {
+    t.plan(4);
+
+    var d = {
+        mac: h.randomMAC(),
+    };
+
+    t.test('create', function (t2) {
+        var params = {
+            belongs_to_type: 'zone',
+            belongs_to_uuid: mod_uuid.v4(),
+            owner_uuid: mod_uuid.v4()
+        };
+
+        mod_nic.createAndGet(t2, {
+            mac: d.mac,
+            params: params,
+            partialExp: { belongs_to_type: 'zone' }
+        }, function (err, res) {
+            t2.ifError(err);
+            if (err) {
+                return t2.end();
+            }
+
+            d.created_time = res.created_time;
+            d.modified_time = res.modified_time;
+            return t2.end();
+        });
+    });
+
+    t.test('modify', function (t2) {
+        mod_nic.updateAndGet(t2, {
+            mac: d.mac,
+            params: {
+                allow_ip_spoofing: true
+            },
+            partialExp: {
+                creation_time: d.creation_time
+            }
+        }, function (err, res) {
+            t2.ifErr(err);
+            if (err) {
+                return t2.end();
+            }
+
+            // XXX Is there ever any danger that create & update
+            // can run in less than the granularity of Date.now()
+            t2.ok(res.modified_time > d.modified_time);
+            d.modified_time = res.modified_time;
+            return t2.end();
+        });
+    });
+
+    t.test('failed modify', function (t2) {
+        mod_nic.update(t2, {
+            mac: d.mac,
+            params: {
+                state: 'spoooooon'
+            },
+            expErr: {
+                code: 'InvalidParameters',
+                errors: [ {
+                    code: 'InvalidParameter',
+                    field: 'state',
+                    message: 'must be one of: "provisioning", "stopped",' +
+                        ' "running"',
+                } ],
+                message: 'Invalid parameters'
+            }
+        });
+    });
+
+    t.test('modification time unchanged', function (t2) {
+        mod_nic.get(t2, {
+            mac: d.mac,
+            partialExp: {
+                creation_time: d.creation_time
+            }
+        }, function (err, res) {
+            t2.ok(d.modified_time === res.modified_time);
+            return t2.end();
+        });
+    });
+});
 
 // --- Listing Tests
 
