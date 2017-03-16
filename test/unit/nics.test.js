@@ -287,7 +287,9 @@ test('Create nic on network_uuid=admin', function (t) {
             belongs_to_uuid: params.belongs_to_uuid,
             ip: res.ip,
             mac: res.mac,
-            owner_uuid: params.owner_uuid
+            owner_uuid: params.owner_uuid,
+            created_time: res.created_time,
+            modified_time: res.modified_time
         }, ADMIN_NET);
         t.deepEqual(res, exp, 'create on admin: good response');
 
@@ -490,7 +492,8 @@ test('Create nic - empty nic_tags_provided', function (t) {
         mod_nic.createAndGet(t2, {
             mac: mac,
             params: d.params,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
@@ -523,7 +526,8 @@ test('Create nic - empty nic_tags_provided', function (t) {
         mod_nic.updateAndGet(t2, {
             mac: d.exp.mac,
             params: params,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -535,7 +539,8 @@ test('Create nic - empty nic_tags_provided', function (t) {
             params: {
                 nic_tags_provided: [ ]
             },
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -556,7 +561,8 @@ test('Create nic - empty nic_tags_provided', function (t) {
         mod_nic.updateAndGet(t2, {
             mac: d.exp.mac,
             params: params,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -568,7 +574,8 @@ test('Create nic - empty nic_tags_provided', function (t) {
             params: {
                 nic_tags_provided: ''
             },
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 });
@@ -643,7 +650,9 @@ test('Provision nic', function (t) {
             resolvers: NET2.resolvers,
             routes: NET2.routes,
             state: constants.DEFAULT_NIC_STATE,
-            vlan_id: NET2.vlan_id
+            vlan_id: NET2.vlan_id,
+            created_time: res.created_time,
+            modified_time: res.modified_time
         };
         t.deepEqual(res, exp, 'result');
 
@@ -1012,7 +1021,9 @@ test('Provision nic - with IP', function (t) {
                 belongs_to_uuid: params.belongs_to_uuid,
                 ip: fmt('10.0.%d.200', NET2.num),
                 mac: res.mac,
-                owner_uuid: params.owner_uuid
+                owner_uuid: params.owner_uuid,
+                created_time: res.created_time,
+                modified_time: res.modified_time,
             }, NET2);
             t2.deepEqual(res, d.exp, 'result');
             return t2.end();
@@ -1157,7 +1168,8 @@ test('(PNDS) Provision nic - with different state', function (t) {
     t.test('(PNDS) get nic', function (t2) {
         mod_nic.get(t2, {
             mac: exp.mac,
-            exp: exp
+            exp: exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
@@ -1169,7 +1181,8 @@ test('(PNDS) Provision nic - with different state', function (t) {
             params: {
                 state: 'running'
             },
-            exp: exp
+            exp: exp,
+            ignore: [ 'modified_time' ]
         });
     });
 });
@@ -1214,7 +1227,8 @@ test('Update nic - provision IP', function (t) {
             params: {
                 network_uuid: NET3.uuid
             },
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
@@ -1267,14 +1281,16 @@ test('Update nic - IP parameters updated', function (t) {
         mod_nic.create(t2, {
             mac: d.mac,
             params: d.params,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
     t.test('get after create', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
@@ -1289,14 +1305,16 @@ test('Update nic - IP parameters updated', function (t) {
         mod_nic.update(t2, {
             mac: d.mac,
             params: updateParams,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get after update', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -1327,7 +1345,8 @@ test('Update nic - IP parameters updated', function (t) {
         mod_nic.update(t2, {
             mac: d.mac,
             params: d.exp,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 });
@@ -1360,7 +1379,8 @@ test('Update nic - change IP', function (t) {
         mod_nic.create(t2, {
             mac: d.mac,
             params: params,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'created_time', 'modified_time' ]
         });
     });
 
@@ -1377,14 +1397,16 @@ test('Update nic - change IP', function (t) {
         mod_nic.update(t2, {
             mac: d.mac,
             params: updateParams,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get: after first update', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -1477,14 +1499,16 @@ test('Update nic - change IP', function (t) {
         mod_nic.update(t2, {
             mac: d.mac,
             params: updateParams,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get: after update to ip2', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -1749,14 +1773,16 @@ test('Update nic - no changes', function (t) {
         mod_nic.update(t2, {
             mac: d.nics[0].mac,
             params: d.nics[0],
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get', function (t2) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -1768,14 +1794,16 @@ test('Update nic - no changes', function (t) {
             params: {
                 network_uuid: NET3.uuid
             },
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get after network_uuid', function (t2) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -1787,14 +1815,16 @@ test('Update nic - no changes', function (t) {
             params: {
                 mac: d.newMAC
             },
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
     t.test('get after mac update', function (t2) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
-            exp: d.nics[0]
+            exp: d.nics[0],
+            ignore: [ 'modified_time' ]
         });
     });
 
@@ -2080,11 +2110,13 @@ test('antispoof options', function (t) {
         for (var p in d.updateParams) {
             delete d.exp[p];
         }
+        delete d.exp.modified_time;
 
         mod_nic.update(t2, {
             mac: d.mac,
             params: d.updateParams,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'modified_time' ]
         }, function (err, res) {
             if (err) {
                 return t2.end();
@@ -2111,11 +2143,13 @@ test('antispoof options', function (t) {
             d.updateParams[p] = true;
             d.exp[p] = true;
         }
+        delete d.exp.modified_time;
 
         mod_nic.update(t2, {
             mac: d.mac,
             params: d.updateParams,
-            exp: d.exp
+            exp: d.exp,
+            fillIn: [ 'modified_time' ]
         }, function (err, res) {
             if (err) {
                 return t2.end();

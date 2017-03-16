@@ -276,7 +276,29 @@ function afterAPIcall(t, opts, callback, err, obj, _, res) {
             });
         }
 
-        t.deepEqual(obj, opts.exp, type + 'full result' + desc);
+        if (opts.hasOwnProperty('ignore')) {
+            var res = {};
+            var exp = {};
+
+            for (var p in opts.exp) {
+                exp[p] = opts.exp[p];
+            }
+            for (var p in obj) {
+                res[p] = obj[p];
+            }
+            opts.ignore.forEach(function (p) {
+                if (exp.hasOwnProperty(p)) {
+                    delete exp[p];
+                }
+                if (res.hasOwnProperty(p)) {
+                    delete res[p];
+                }
+            });
+
+            t.deepEqual(res, exp, type + 'full result' + desc);
+        } else {
+            t.deepEqual(obj, opts.exp, type + 'full result' + desc);
+        }
     }
 
     if (opts.partialExp) {
