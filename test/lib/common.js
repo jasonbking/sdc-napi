@@ -277,25 +277,25 @@ function afterAPIcall(t, opts, callback, err, obj, _, res) {
         }
 
         if (opts.hasOwnProperty('ignore')) {
-            var res = {};
-            var exp = {};
+            var ignRes = {};
+            var ignExp = {};
 
-            for (var p in opts.exp) {
-                exp[p] = opts.exp[p];
+            for (var p1 in opts.exp) {
+                ignExp[p1] = opts.exp[p1];
             }
-            for (var p in obj) {
-                res[p] = obj[p];
+            for (var p2 in obj) {
+                ignRes[p2] = obj[p2];
             }
-            opts.ignore.forEach(function (p) {
-                if (exp.hasOwnProperty(p)) {
-                    delete exp[p];
+            opts.ignore.forEach(function (prop) {
+                if (ignExp.hasOwnProperty(prop)) {
+                    delete ignExp[prop];
                 }
-                if (res.hasOwnProperty(p)) {
-                    delete res[p];
+                if (ignRes.hasOwnProperty(prop)) {
+                    delete ignRes[prop];
                 }
             });
 
-            t.deepEqual(res, exp, type + 'full result' + desc);
+            t.deepEqual(ignRes, ignExp, type + 'full result' + desc);
         } else {
             t.deepEqual(obj, opts.exp, type + 'full result' + desc);
         }

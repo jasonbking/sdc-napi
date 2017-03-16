@@ -632,7 +632,8 @@ test('Check creation and modification', function (t) {
         }
 
         t.true(res.created_time && res.created_time >= 0, 'creation time');
-        t.true(res.modified_time && res.modified_time === res.created_time, 'modified_time');
+        t.true(res.modified_time && res.modified_time === res.created_time,
+            'modified_time');
         t.end();
     });
 });
@@ -1040,7 +1041,7 @@ test('Provision nic - with IP', function (t) {
                 mac: res.mac,
                 owner_uuid: params.owner_uuid,
                 created_time: res.created_time,
-                modified_time: res.modified_time,
+                modified_time: res.modified_time
             }, NET2);
             t2.deepEqual(res, d.exp, 'result');
             return t2.end();
@@ -2300,7 +2301,7 @@ test('Modification time updates are sane', function (t) {
     t.plan(4);
 
     var d = {
-        mac: h.randomMAC(),
+        mac: h.randomMAC()
     };
 
     t.test('create', function (t2) {
@@ -2361,7 +2362,7 @@ test('Modification time updates are sane', function (t) {
                     code: 'InvalidParameter',
                     field: 'state',
                     message: 'must be one of: "provisioning", "stopped",' +
-                        ' "running"',
+                        ' "running"'
                 } ],
                 message: 'Invalid parameters'
             }
@@ -2375,6 +2376,11 @@ test('Modification time updates are sane', function (t) {
                 creation_time: d.creation_time
             }
         }, function (err, res) {
+            t2.ifErr(err);
+            if (err) {
+                return t2.end();
+            }
+
             t2.ok(d.modified_time === res.modified_time);
             return t2.end();
         });
