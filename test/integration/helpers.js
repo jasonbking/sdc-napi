@@ -50,6 +50,17 @@ function addNetParamsToNic(state, params) {
     mod_net.addNetParams(state.network, params);
 }
 
+/*
+ * Save off the timestamps from a nic into state, and remove from
+ * nic to keep deepEquals happy
+ */
+function saveTimestamps(state, nic, which) {
+    state.created_time[which] = nic.created_time;
+    delete nic.created_time;
+
+    state.modified_time[which] = nic.modified_time;
+    delete nic.modified_time;
+}
 
 /**
  * Create a NAPI client, with a req_id for tracking requests.
@@ -395,6 +406,7 @@ module.exports = {
     loadUFDSadminUUID: loadUFDSadminUUID,
     randomMAC: common.randomMAC,
     reqOpts: common.reqOpts,
+    saveTimestamps: saveTimestamps,
     similar: similar,
     get ufdsAdminUuid() {
         if (!ADMIN_UUID) {

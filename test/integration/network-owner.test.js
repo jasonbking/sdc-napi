@@ -81,6 +81,8 @@ function checkProvisionSuccess(newOwner, t) {
         params.ip = nextIP;
 
         h.addNetParamsToNic(state, params);
+        delete res.created_time;
+        delete res.modified_time;
         t.deepEqual(res, params, 'nic params');
 
         return t.end();
