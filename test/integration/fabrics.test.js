@@ -1108,7 +1108,8 @@ test('update nics', function (t) {
         mod_nic.updateAndGet(t2, {
             mac: CREATED.updateNic.mac,
             params: CREATED.updateNic,
-            exp: CREATED.updateNic
+            exp: CREATED.updateNic,
+            ignore: [ 'created_time', 'modified_time' ]
         });
     });
 
