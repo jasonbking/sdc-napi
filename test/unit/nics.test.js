@@ -632,7 +632,7 @@ test('Check creation and modification', function (t) {
     }, function (_, res) {
         t.ok(res.created_time, 'created time exists');
         t.ok(res.modified_time, 'modified time exists');
-        t.ok(res.created_time === res.modified_time, 'initial created and ' +
+        t.equal(res.created_time, res.modified_time, 'initial created and ' +
             'modified time are equal');
         return t.end();
     });
