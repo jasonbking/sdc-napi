@@ -625,16 +625,16 @@ test('Check creation and modification', function (t) {
         owner_uuid: mod_uuid.v4()
     };
 
-    NAPI.provisionNic('admin', params, function (err, res) {
-        t.ifError(err, 'create on admin: provisioned');
-        if (err) {
-            return t.end();
-        }
-
-        t.true(res.created_time && res.created_time >= 0, 'creation time');
-        t.true(res.modified_time && res.modified_time === res.created_time,
-            'modified_time');
-        t.end();
+    mod_nic.create(t, {
+        mac: h.randomMAC(),
+        params: params,
+        partialExp: { belongs_to_type: 'server' }
+    }, function (_, res) {
+        t.ok(res.created_time, 'created time exists');
+        t.ok(res.modified_time, 'modified time exists');
+        t.ok(res.created_time === res.modified_time, 'initial created and ' +
+            'modified time are equal');
+        return t.end();
     });
 });
 
@@ -2375,12 +2375,7 @@ test('Modification time updates are sane', function (t) {
             partialExp: {
                 creation_time: d.creation_time
             }
-        }, function (err, res) {
-            t2.ifErr(err);
-            if (err) {
-                return t2.end();
-            }
-
+        }, function (_, res) {
             t2.ok(d.modified_time === res.modified_time);
             return t2.end();
         });
