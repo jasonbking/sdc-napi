@@ -18,7 +18,9 @@ var constants = require('../../lib/util/constants');
 var fmt = require('util').format;
 var h = require('./helpers');
 var mod_err = require('../../lib/util/errors');
+var mod_ip = require('../lib/ip');
 var mod_net = require('../lib/net');
+var mod_nic = require('../lib/nic');
 var mod_nicTag = require('../lib/nic-tag');
 var mod_uuid = require('node-uuid');
 var test = require('tape');
@@ -229,7 +231,66 @@ test('IP not in any networks', function (t) {
     });
 });
 
+test('Search', function (t) {
+    var ip = fmt('10.0.%d.200', h.NET_NUM - 1);
 
+    var params = {
+        belongs_to_type: 'zone',
+        belongs_to_uuid: mod_uuid.v4(),
+        ip: ip,
+        owner_uuid: mod_uuid.v4()
+    };
+
+    var ipObj = {};
+
+    h.copyParams(params, ipObj);
+
+    ipObj.reserved = false;
+    ipObj.free = false;
+
+    t.test('create ip', function (t2) {
+        mod_nic.provision(t2, {
+            net: NETS[2].uuid,
+            params: params,
+            partialExp: params
+        }, function (_, res) {
+            ipObj.network_uuid = res.network_uuid;
+            return t2.end();
+        });
+    });
+
+    t.test('find - just ip', function (t2) {
+        mod_ip.search(t2, {
+            ip: ip,
+            params: {},
+            present: [ ipObj ]
+        });
+    });
+
+    t.test('find - ip & belongs_to_uuid', function (t2) {
+        mod_ip.search(t2, {
+            ip: ip,
+            params: {
+                belongs_to_uuid: ipObj.belongs_to_uuid
+            },
+            present: [ ipObj ]
+        });
+    });
+
+    t.test('find - ip & belongs_to_uuid doesn\'t match', function (t2) {
+        mod_ip.search(t2, {
+            ip: ip,
+            params: {
+                belongs_to_uuid: mod_uuid.v4()
+            },
+            expCode: 404,
+            expErr: {
+                code: 'ResourceNotFound',
+                message: constants.msg.SEARCH_NO_NETS
+            }
+        });
+    });
+});
 
 // --- Teardown
 
