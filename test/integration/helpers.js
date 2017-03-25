@@ -51,15 +51,22 @@ function addNetParamsToNic(state, params) {
 }
 
 /*
- * Save off the timestamps from a nic into state, and remove from
+ * Save off the timestamps from an object into state, and remove from
  * nic to keep deepEquals happy
  */
-function saveTimestamps(state, nic, which) {
-    state.created_time[which] = nic.created_time;
-    delete nic.created_time;
+function saveTimestamps(state, obj, which) {
+    if (!state.ts.created_timestamp) {
+        state.ts.created_timestamp = {};
+    }
+    if (!state.ts.modified_timestamp) {
+        state.ts.modified_timestamp = {};
+    }
 
-    state.modified_time[which] = nic.modified_time;
-    delete nic.modified_time;
+    state.ts.created_timestamp[which] = obj.created_timestamp;
+    delete obj.created_timestamp;
+
+    state.ts.modified_timestamp[which] = obj.modified_timestamp;
+    delete obj.modified_timestamp;
 }
 
 /**

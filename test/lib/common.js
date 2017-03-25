@@ -183,7 +183,92 @@ var badLimitOffTests = [
     }
 ];
 
+// --- Private functions
 
+/*
+ * check if {created,modified}_timestamp are returned with sane values
+ * on creation or modification, as well as adjust opts as necessary
+ * so t.deepEquals() is kept happy
+ *
+ * Optionally, opts.ts can be used to track the timestamps
+ * across multiple invocations to make sure the values are
+ * being updated as expected.
+ */
+function checkTimestamps(t, type, desc, opts, obj) {
+    assert.optionalObject(opts.ts, 'opts.ts');
+
+    var supportedTypes = [ 'nic' ];
+
+    if (supportedTypes.indexOf(opts.type) < 0) {
+        return;
+    }
+
+    switch (opts.reqType) {
+        case 'create':
+            t.notEqual(obj.created_timestamp, 0,
+                type + 'created ts > 0' + desc);
+            t.notEqual(obj.modified_timestamp, 0,
+                type + 'modified ts > 0' + desc);
+            t.equal(obj.created_timestamp, obj.modified_timestamp,
+                type + 'created and modified ts equal at creation' + desc);
+
+            if (opts.ts) {
+                opts.ts.created_timestamp = obj.created_timestamp;
+                opts.ts.modified_timestamp = obj.modified_timestamp;
+            }
+            break;
+
+        case 'get':
+            // existing objects might not yet have timestamps, so can return 0
+            t.ok(obj.created_timestamp,
+                type + 'created ts exists' + desc);
+            t.ok(obj.modified_timestamp,
+                type + 'modified ts exsists' + desc);
+
+            if (opts.ts) {
+                t.equal(obj.modified_timestamp, opts.ts.modified_timestamp,
+                    type + 'modified ts unchanged on get' + desc);
+            }
+            break;
+
+        case 'update':
+            t.notEqual(obj.created_timestamp, 0,
+                type + 'created ts set' + desc);
+            t.notEqual(obj.modified_timestamp, 0,
+                type + 'modified ts set' + desc);
+            t.ok(obj.modified_timestamp > obj.created_timestamp,
+                type + 'modified ts > created ts on update' + desc);
+
+            if (opts.ts) {
+                t.ok(obj.modified_timestamp > opts.ts.modified_timestamp,
+                    type + 'modified ts increasing after update' + desc);
+                opts.ts.modified_timestamp = obj.modified_timestamp;
+            }
+            break;
+
+        default:
+            return;
+    }
+
+    if (opts.exp) {
+        var ignore = opts.ignore ? opts.ignore : [];
+
+        // skip implicit checks if caller explicity specifies a value
+        if (!opts.exp.created_timestamp) {
+            if (ignore.indexOf('created_timestamp') < 0) {
+                ignore.push('created_timestamp');
+            }
+        }
+
+        if (!opts.exp.modified_timestamp) {
+            if (ignore.indexOf('modified_timestamp') < 0) {
+                ignore.push('modified_timestamp');
+            }
+        }
+
+        opts.ignore = ignore;
+    }
+}
 
 // --- Exported functions
 
@@ -256,6 +341,8 @@ function afterAPIcall(t, opts, callback, err, obj, _, res) {
         t.ok(true, fmt('created %s "%s"', opts.type, obj[opts.idKey]));
     }
 
+    checkTimestamps(t, type, desc, opts, obj);
+
     if (opts.exp) {
         // For creates, the server will generate an ID (usually a UUID) if
         // it's not set in the request.  Copy this over to the expected
@@ -276,29 +363,23 @@ function afterAPIcall(t, opts, callback, err, obj, _, res) {
             });
         }
 
-        if (opts.hasOwnProperty('ignore')) {
-            var ignRes = {};
-            var ignExp = {};
+        var actual = obj;
+        var expected = opts.exp;
 
-            for (var p1 in opts.exp) {
-                ignExp[p1] = opts.exp[p1];
-            }
-            for (var p2 in obj) {
-                ignRes[p2] = obj[p2];
-            }
-            opts.ignore.forEach(function (prop) {
-                if (ignExp.hasOwnProperty(prop)) {
-                    delete ignExp[prop];
-                }
-                if (ignRes.hasOwnProperty(prop)) {
-                    delete ignRes[prop];
-                }
+        if (opts.hasOwnProperty('ignore')) {
+            var objClone = clone(obj);
+            var expClone = clone(opts.exp);
+
+            opts.ignore.forEach(function (ign) {
+                delete objClone[ign];
+                delete expClone[ign];
             });
 
-            t.deepEqual(ignRes, ignExp, type + 'full result' + desc);
-        } else {
-            t.deepEqual(obj, opts.exp, type + 'full result' + desc);
+            actual = objClone;
+            expected = expClone;
         }
+
+        t.deepEqual(actual, expected, type + 'full result' + desc);
     }
 
     if (opts.partialExp) {

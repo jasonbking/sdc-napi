@@ -1109,7 +1109,7 @@ test('update nics', function (t) {
             mac: CREATED.updateNic.mac,
             params: CREATED.updateNic,
             exp: CREATED.updateNic,
-            ignore: [ 'created_time', 'modified_time' ]
+            ignore: [ 'created_timestamp', 'modified_timestamp' ]
         });
     });
 

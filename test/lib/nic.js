@@ -270,8 +270,7 @@ function provisionNic(t, opts, callback) {
     opts.reqType = 'create';
 
     if (opts.exp && opts.fillInMissing) {
-        opts.fillIn = [ 'ip', 'mac', 'primary', 'state', 'created_time',
-            'modified_time' ];
+        opts.fillIn = [ 'ip', 'mac', 'primary', 'state' ];
     }
 
     client.provisionNic(opts.net, opts.params, common.reqOpts(t),

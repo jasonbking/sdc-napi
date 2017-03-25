@@ -36,8 +36,7 @@ var state = {
     ip: {},
     desc: {},
     mac: {},
-    created_time: {},
-    modified_time: {}
+    ts: {}
 };
 var uuids = {
     admin: '',
@@ -106,6 +105,8 @@ test('POST /nics (basic)', function (t) {
     };
     var mac = h.randomMAC();
 
+    state.ts.a = {};
+
     napi.createNic(mac, params, h.reqOpts(t, desc), function (err, res) {
         desc = util.format(' [%s: : %s]', mac, desc);
         t.ifError(err, 'provision nic' + desc);
@@ -115,7 +116,7 @@ test('POST /nics (basic)', function (t) {
 
         params.mac = mac;
         mod_nic.addDefaultParams(params);
-        t.equal(res.created_time, res.modified_time,
+        t.equal(res.created_timestamp, res.modified_timestamp,
             'nic timestamps exist and equal' + desc);
         h.saveTimestamps(state, res, 'a');
         t.deepEqual(res, params, 'nic params returned' + desc);
@@ -151,7 +152,7 @@ test('POST /nics (with IP, network and state)', function (t) {
 
             params.mac = d.mac;
             mod_nic.addDefaultParams(params, state.networks[0]);
-            t2.equal(res.created_time, res.modified_time,
+            t2.equal(res.created_timestamp, res.modified_timestamp,
                 'nic timestamps exist and equal' + desc);
             h.saveTimestamps(state, res, 'b');
             t2.deepEqual(res, params, 'nic params returned' + desc);
@@ -222,7 +223,7 @@ test('POST /nics (with IP but no network)', function (t) {
 
         params.mac = mac;
         mod_nic.addDefaultParams(params, state.networks[0]);
-        t.equal(res.created_time, res.modified_time,
+        t.equal(res.created_timestamp, res.modified_timestamp,
             'nic timestamps exist and equal' + desc);
         h.saveTimestamps(state, res, 'c');
         t.deepEqual(res, params, 'nic params returned' + desc);
@@ -292,7 +293,7 @@ test('POST /nics (with IP already reserved)', function (t) {
 
             d.params.mac = mac;
             mod_nic.addDefaultParams(d.params, state.networks[0]);
-            t2.equal(res.created_time, res.modified_time,
+            t2.equal(res.created_timestamp, res.modified_timestamp,
                 'nic timestamps exist and equal' + d.desc);
             h.saveTimestamps(state, res, 'resNic1');
             t2.deepEqual(res, d.params, 'nic params returned' + d.desc);
@@ -395,7 +396,7 @@ test('POST /networks/:uuid/nics (basic)', function (t) {
 
         params.mac = res.mac;
         params.ip = res.ip;
-        t.equal(res.created_time, res.modified_time,
+        t.equal(res.created_timestampstamp, res.modified_timestampstamp,
             'nic timestamps exist and equal' + desc);
         mod_nic.addDefaultParams(params, state.networks[0]);
         h.saveTimestamps(state, res, 'd');
@@ -428,7 +429,7 @@ test('POST /networks/:uuid/nics (with IP)', function (t) {
 
         params.mac = res.mac;
         mod_nic.addDefaultParams(params, state.networks[0]);
-        t.equal(res.created_time, res.modified_time,
+        t.equal(res.created_timestamp, res.modified_timestamp,
                 'nic timestamps exist and equal' + desc);
         h.saveTimestamps(state, res, 'e');
 
@@ -499,7 +500,7 @@ test('POST /nics (with reserved IP)', function (t) {
         params.mac = mac;
         params.ip = res.ip;
         mod_nic.addDefaultParams(params, state.networks[0]);
-        t.equal(res.created_time, res.modified_time,
+        t.equal(res.created_timestamp, res.modified_timestamp,
             'nic timestamps returned and initially equal' + desc);
         h.saveTimestamps(state, res, 'resNic2');
         t.deepEqual(res, params, 'nic params returned' + desc);
@@ -554,7 +555,7 @@ test('POST /nics (with model)', function (t) {
                 params.primary = false;
                 params.mac = mac;
                 params.state = constants.DEFAULT_NIC_STATE;
-                t.equal(res.created_time, res.modified_time,
+                t.equal(res.created_timestamp, res.modified_timestamp,
                     'nic timestamps exist and equal' + desc);
                 h.saveTimestamps(state, res, 'model');
                 t.deepEqual(res, params, 'nic params returned' + desc);
@@ -570,10 +571,10 @@ test('POST /nics (with model)', function (t) {
                 if (err) {
                     return cb(err);
                 }
-                t.equal(res.created_time, res.modified_time,
+                t.equal(res.created_timestamp, res.modified_timestamp,
                     'get nic timestamps exist and equal' + desc);
-                delete res.created_time;
-                delete res.modified_time;
+                delete res.created_timestamp;
+                delete res.modified_timestamp;
 
                 t.deepEqual(res, params, 'nic params returned' + desc);
                 return cb();
@@ -588,13 +589,14 @@ test('POST /nics (with model)', function (t) {
 
                 params.model = 'e1000';
 
-                t.equal(res.created_time, state.created_time.model,
+                t.equal(res.created_timestamp, state.ts.created_timestamp.model,
                     'nic created time unchanged' + desc);
-                t.notEqual(res.modified_time, state.modified_time.model,
+                t.notEqual(res.modified_timestamp,
+                    state.ts.modified_timestamp.model,
                     'nic modified time updated' + desc);
                 // this implies the above test is true, however doing
                 // both gives clearer failure
-                t.ok(res.modified_time > state.modified_time.model,
+                t.ok(res.modified_timestamp > state.ts.modified_timestamp.model,
                     'nic modified time advancing' + desc);
                 h.saveTimestamps(state, res, 'model');
                 t.deepEqual(res, params, 'updated nic params returned' + desc);
@@ -608,12 +610,13 @@ test('POST /nics (with model)', function (t) {
                     return cb(err);
                 }
 
-                t.equal(res.created_time, state.created_time.model,
+                t.equal(res.created_timestamp, state.ts.created_timestamp.model,
                     'nic created time unchanged' + desc);
-                t.equal(res.modified_time, state.modified_time.model,
+                t.equal(res.modified_timestamp,
+                    state.ts.modified_timestamp.model,
                     'nic modified time unchanged' + desc);
-                delete res.created_time;
-                delete res.modified_time;
+                delete res.created_timestamp;
+                delete res.modified_timestamp;
 
                 t.deepEqual(res, params, 'nic params returned' + desc);
                 return cb();
@@ -707,8 +710,8 @@ test('GET /nics/:mac', function (t) {
     function checkNic(nicNum, cb) {
         var nic = state.nic[nicNum];
         var desc = state.desc[nicNum];
-        var crtime = state.created_time[nicNum];
-        var mtime = state.modified_time[nicNum];
+        var crtime = state.ts.created_timestamp[nicNum];
+        var mtime = state.ts.modified_timestamp[nicNum];
 
         napi.getNic(nic.mac, h.reqOpts(t, desc), function (err, res) {
             t.ifError(err, 'get nic' + desc);
@@ -716,12 +719,12 @@ test('GET /nics/:mac', function (t) {
                 return cb(err);
             }
 
-            t.equal(crtime, res.created_time,
-                'get params created_time' + desc);
-            t.equal(mtime, res.modified_time,
-                'get params modified_time' + desc);
-            delete res.created_time;
-            delete res.modified_time;
+            t.equal(crtime, res.created_timestamp,
+                'get params created_timestamp' + desc);
+            t.equal(mtime, res.modified_timestamp,
+                'get params modified_timestamp' + desc);
+            delete res.created_timestamp;
+            delete res.modified_timestamp;
 
             t.deepEqual(res, nic, 'get params' + desc);
             return cb();
@@ -751,17 +754,17 @@ test('PUT /nics/:mac', function (t) {
         var client = h.createNAPIclient(t);
         var desc = ' update ' + state.desc[nicNum] + ' req_id=' + client.req_id;
         var nic = state.nic[nicNum];
-        var crtime = state.created_time[nicNum];
-        var mtime = state.modified_time[nicNum];
+        var crtime = state.ts.created_timestamp[nicNum];
+        var mtime = state.ts.modified_timestamp[nicNum];
 
         client.updateNic(nic.mac, params, function (err, res) {
             h.ifErr(t, err, desc);
 
-            t.equal(res.created_time, crtime, 'created_time unmodified' + desc);
-            t.notEqual(res.modified_time, mtime,
-                'modified_time updated' + desc);
-            t.ok(res.modified_time > mtime, 'modified_time increasing' + desc);
-            mtime = res.modified_time;
+            t.equal(res.created_timestamp, crtime, 'created_timestamp unmodified' + desc);
+            t.notEqual(res.modified_timestamp, mtime,
+                'modified_timestamp updated' + desc);
+            t.ok(res.modified_timestamp > mtime, 'modified_timestamp increasing' + desc);
+            mtime = res.modified_timestamp;
             h.saveTimestamps(state, res, nicNum);
 
             for (var p in params) {
@@ -772,12 +775,12 @@ test('PUT /nics/:mac', function (t) {
             client.getNic(nic.mac, function (err2, res2) {
                 h.ifErr(t, err2, 'get' + desc);
 
-                t.equal(res2.created_time, crtime,
-                    'get created_time unmodified' + desc);
-                t.equal(res2.modified_time, mtime,
-                    'get modified_time unmodified' + desc);
-                delete res2.created_time;
-                delete res2.modified_time;
+                t.equal(res2.created_timestamp, crtime,
+                    'get created_timestamp unmodified' + desc);
+                t.equal(res2.modified_timestamp, mtime,
+                    'get modified_timestamp unmodified' + desc);
+                delete res2.created_timestamp;
+                delete res2.modified_timestamp;
 
                 t.deepEqual(res2, nic, 'get params' + desc);
 
@@ -862,17 +865,20 @@ test('PUT /nics (with network_uuid and state)', function (t) {
                 return t.end();
             }
 
+            var crtime = state.ts.created_timestamp.putIPnetUUID;
+            var mtime = state.ts.modified_timestamp.putIPnetUUID;
+
             params.mac = mac;
             params.ip = res2.ip;
             params.state = 'stopped';
             mod_nic.addDefaultParams(params, state.networks[0]);
             t.ok(res2.ip, 'nic now has IP address');
 
-            t.equal(res2.created_time, state.created_time.putIPnetUUID,
+            t.equal(res2.created_timestamp, crtime,
                 'nic created time unchanged' + desc);
-            t.notEqual(res2.modified_time, state.modified_time.putIPnetUUID,
+            t.notEqual(res2.modified_timestamp, mtime,
                 'nic modified time updated' + desc);
-            t.ok(res2.modified_time > state.modified_time.putIPnetUUID,
+            t.ok(res2.modified_timestamp > mtime,
                 'nic modified time increasing' + desc);
             h.saveTimestamps(state, res2, 'putIPnetUUID');
 
@@ -959,16 +965,19 @@ test('PUT /nics (with network_uuid set to admin)', function (t) {
                 return t.end();
             }
 
+            var crtime = state.ts.created_timestamp.putIPwithName;
+            var mtime = state.ts.modified_timestamp.putIPwithName;
+
             params.mac = mac;
             params.ip = res2.ip;
             params.owner_uuid = updateParams.owner_uuid;
             mod_nic.addDefaultParams(params, state.adminNet);
 
-            t.equal(res2.created_time, state.created_time.putIPwithName,
+            t.equal(res2.created_timestamp, crtime,
                 'created time unchanged' + desc);
-            t.notEqual(res2.modified_time, state.modified_time.putIPwithName,
+            t.notEqual(res2.modified_timestamp, mtime,
                 'modified time updated' + desc);
-            t.ok(res2.modified_time > state.modified_time.putIPwithName,
+            t.ok(res2.modified_timestamp > mtime,
                 'modified time increasing' + desc);
             h.saveTimestamps(state, res2, 'putIPwithName');
 
@@ -1131,15 +1140,15 @@ test('GET /nics (filtered by belongs_to_uuid)', function (t) {
 
             var params = state.nic[nics[cur.mac]];
             var desc = state.desc[nics[cur.mac]];
-            var crtime = state.created_time[nics[cur.mac]];
-            var mtime = state.modified_time[nics[cur.mac]];
+            var crtime = state.ts.created_timestamp[nics[cur.mac]];
+            var mtime = state.ts.modified_timestamp[nics[cur.mac]];
 
-            t.equal(cur.created_time, crtime,
+            t.equal(cur.created_timestamp, crtime,
                 'list nic created time matches' + desc);
-            t.equal(cur.modified_time, mtime,
+            t.equal(cur.modified_timestamp, mtime,
                 'list nic modified time matches' + desc);
-            delete cur.created_time;
-            delete cur.modified_time;
+            delete cur.created_timestamp;
+            delete cur.modified_timestamp;
 
             t.deepEqual(cur, params, 'list nic matches' + desc);
             found++;

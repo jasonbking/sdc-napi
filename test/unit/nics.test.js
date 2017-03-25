@@ -288,8 +288,8 @@ test('Create nic on network_uuid=admin', function (t) {
             ip: res.ip,
             mac: res.mac,
             owner_uuid: params.owner_uuid,
-            created_time: res.created_time,
-            modified_time: res.modified_time
+            created_timestamp: res.created_timestamp,
+            modified_timestamp: res.modified_timestamp
         }, ADMIN_NET);
         t.deepEqual(res, exp, 'create on admin: good response');
 
@@ -474,6 +474,7 @@ test('Create nic - invalid params', function (t) {
 test('Create nic - empty nic_tags_provided', function (t) {
     t.plan(8);
     var d = {};
+    d.ts = {};
 
     t.test('create', function (t2) {
         var mac = h.randomMAC();
@@ -493,7 +494,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
             mac: mac,
             params: d.params,
             exp: d.exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -506,7 +507,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
                 owner_uuid: mod_uuid.v4()
             },
             expErr: h.invalidParamErr({
-                errors: [ mod_err.duplicateParam('mac') ]
+                errors: [ mod_err.duplicateParam('mac') ],
             })
         });
     });
@@ -527,7 +528,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
             mac: d.exp.mac,
             params: params,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -540,7 +541,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
                 nic_tags_provided: [ ]
             },
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -562,7 +563,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
             mac: d.exp.mac,
             params: params,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -575,7 +576,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
                 nic_tags_provided: ''
             },
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 });
@@ -618,25 +619,7 @@ test('Create nic with resolver IP', function (t) {
     });
 });
 
-test('Check creation and modification', function (t) {
-    var params = {
-        belongs_to_type: 'server',
-        belongs_to_uuid: mod_uuid.v4(),
-        owner_uuid: mod_uuid.v4()
-    };
 
-    mod_nic.create(t, {
-        mac: h.randomMAC(),
-        params: params,
-        partialExp: { belongs_to_type: 'server' }
-    }, function (_, res) {
-        t.ok(res.created_time, 'created time exists');
-        t.ok(res.modified_time, 'modified time exists');
-        t.equal(res.created_time, res.modified_time, 'initial created and ' +
-            'modified time are equal');
-        return t.end();
-    });
-});
 
 // --- Provision tests
 
@@ -669,10 +652,14 @@ test('Provision nic', function (t) {
             routes: NET2.routes,
             state: constants.DEFAULT_NIC_STATE,
             vlan_id: NET2.vlan_id,
-            created_time: res.created_time,
-            modified_time: res.modified_time
+            created_timestamp: res.created_timestamp,
+            modified_timestamp: res.modified_timestamp
         };
         t.deepEqual(res, exp, 'result');
+        t.equal(res.created_timestamp, res.modified_timestamp,
+            'nic created and modified ts equal at creation');
+        t.notEqual(res.created_timestamp, 0, 'nic created ts non-zero');
+
 
         NAPI.getNic(res.mac, function (err2, res2) {
             if (h.ifErr(t, err2, 'get provisioned nic')) {
@@ -841,6 +828,12 @@ test('Provision nic: MAC retry', function (t) {
                 batch: [ ]
             }, 'no more batch errors left');
 
+            d.created_timestamp = morayObj.created_timestamp;
+            d.modified_timestamp = morayObj.modified_timestamp;
+            t2.equal(morayObj.created_timestamp, morayObj.modified_timestamp,
+                'nic created and modified ts equal at creation');
+            t2.notEqual(res.created_timestamp, 0, 'nic created ts non-zero');
+
             return t2.end();
         });
     });
@@ -908,6 +901,7 @@ test('Provision nic: MAC retry', function (t) {
 test('Provision nic: IP retry', function (t) {
     t.plan(4);
     var d = {};
+    d.ts = {};
 
     t.test('provision', function (t2) {
         var params = {
@@ -939,6 +933,12 @@ test('Provision nic: IP retry', function (t) {
 
             t2.equal(res.network_uuid, PROV_MAC_NET.uuid,
                 'network_uuid correct');
+            t2.equal(res.created_timestamp, res.modified_timestamp,
+                'nic created and modified ts equal at creation');
+            t2.notEqual(res.created_timestamp, 0, 'nic created ts non-zero');
+
+            d.ts.created_timestamp = res.created_timestamp;
+            d.ts.modified_timestamp = res.modified_timestamp;
 
             // Make sure we actually hit those errors:
             t2.deepEqual(mod_moray.getErrors(), {
@@ -954,7 +954,8 @@ test('Provision nic: IP retry', function (t) {
             mac: d.mac,
             partialExp: {
                 network_uuid: PROV_MAC_NET.uuid
-            }
+            },
+            ts: d.ts
         });
     });
 
@@ -980,7 +981,8 @@ test('Provision nic: IP retry', function (t) {
         mod_nic.create(t2, {
             mac: d.mac,
             params: params,
-            partialExp: params
+            partialExp: params,
+            ts: d.ts
         }, function (err, res) {
             if (err) {
                 return t2.end();
@@ -1011,7 +1013,8 @@ test('Provision nic: IP retry', function (t) {
             mac: d.mac,
             partialExp: {
                 network_uuid: PROV_MAC_NET.uuid
-            }
+            },
+            ts: d.ts
         });
     });
 });
@@ -1034,14 +1037,18 @@ test('Provision nic - with IP', function (t) {
                 return t2.end();
             }
 
+            t2.equal(res.created_timestamp, res.modified_timestamp,
+                'nic created and modified ts equal at creation');
+            t2.notEqual(res.created_timestamp, 0, 'nic created ts non-zero');
+
             d.exp = mod_nic.addDefaultParams({
                 belongs_to_type: params.belongs_to_type,
                 belongs_to_uuid: params.belongs_to_uuid,
                 ip: fmt('10.0.%d.200', NET2.num),
                 mac: res.mac,
                 owner_uuid: params.owner_uuid,
-                created_time: res.created_time,
-                modified_time: res.modified_time
+                created_timestamp: res.created_timestamp,
+                modified_timestamp: res.modified_timestamp
             }, NET2);
             t2.deepEqual(res, d.exp, 'result');
             return t2.end();
@@ -1173,13 +1180,15 @@ test('(PNDS) Provision nic - with different state', function (t) {
         owner_uuid: params.owner_uuid,
         state: 'stopped'
     }, NET2);
+    var ts = {};
 
     t.test('(PNDS) provision', function (t2) {
         mod_nic.provision(t2, {
             fillInMissing: true,
             net: NET2.uuid,
             params: params,
-            exp: exp
+            exp: exp,
+            ts: ts
         });
     });
 
@@ -1187,7 +1196,7 @@ test('(PNDS) Provision nic - with different state', function (t) {
         mod_nic.get(t2, {
             mac: exp.mac,
             exp: exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1200,7 +1209,7 @@ test('(PNDS) Provision nic - with different state', function (t) {
                 state: 'running'
             },
             exp: exp,
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 });
@@ -1222,11 +1231,13 @@ test('Update nic - provision IP', function (t) {
             belongs_to_uuid: mod_uuid.v4(),
             owner_uuid: mod_uuid.v4()
         };
+        d.ts = {};
 
         mod_nic.create(t2, {
             mac: d.mac,
             params: d.params,
-            partialExp: d.params
+            partialExp: d.params,
+            ts: d.ts
         });
 
     });
@@ -1246,14 +1257,15 @@ test('Update nic - provision IP', function (t) {
                 network_uuid: NET3.uuid
             },
             exp: d.exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: d.ts
         });
     });
 
     t.test('get nic', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ts: d.ts
         });
     });
 
@@ -1295,12 +1307,13 @@ test('Update nic - IP parameters updated', function (t) {
             mac: d.mac,
             owner_uuid: d.params.owner_uuid
         }, NET);
+        d.ts = {};
 
         mod_nic.create(t2, {
             mac: d.mac,
             params: d.params,
             exp: d.exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1308,7 +1321,7 @@ test('Update nic - IP parameters updated', function (t) {
         mod_nic.get(t2, {
             mac: d.mac,
             exp: d.exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1320,11 +1333,12 @@ test('Update nic - IP parameters updated', function (t) {
         };
 
         h.copyParams(updateParams, d.exp);
+
         mod_nic.update(t2, {
             mac: d.mac,
             params: updateParams,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1332,7 +1346,7 @@ test('Update nic - IP parameters updated', function (t) {
         mod_nic.get(t2, {
             mac: d.mac,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1364,7 +1378,7 @@ test('Update nic - IP parameters updated', function (t) {
             mac: d.mac,
             params: d.exp,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 });
@@ -1393,12 +1407,13 @@ test('Update nic - change IP', function (t) {
             owner_uuid: params.owner_uuid
         }, NET);
         d.other = mod_uuid.v4();
+        d.ts = {};
 
         mod_nic.create(t2, {
             mac: d.mac,
             params: params,
             exp: d.exp,
-            fillIn: [ 'created_time', 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1416,7 +1431,7 @@ test('Update nic - change IP', function (t) {
             mac: d.mac,
             params: updateParams,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1424,7 +1439,7 @@ test('Update nic - change IP', function (t) {
         mod_nic.get(t2, {
             mac: d.mac,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1518,7 +1533,7 @@ test('Update nic - change IP', function (t) {
             mac: d.mac,
             params: updateParams,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1526,7 +1541,7 @@ test('Update nic - change IP', function (t) {
         mod_nic.get(t2, {
             mac: d.mac,
             exp: d.exp,
-            ignore: [ 'modified_time' ]
+            ts: d.ts
         });
     });
 
@@ -1586,6 +1601,8 @@ test('Update nic - add resolver IP', function (t) {
         });
     });
 
+    d.ts = {};
+
     t.test('create', function (t2) {
         d.partialExp = {
             belongs_to_type: 'zone',
@@ -1597,7 +1614,8 @@ test('Update nic - add resolver IP', function (t) {
         mod_nic.create(t2, {
             mac: d.mac,
             params: d.partialExp,
-            partialExp: d.partialExp
+            partialExp: d.partialExp,
+            ts: d.ts
         });
     });
 
@@ -1615,7 +1633,8 @@ test('Update nic - add resolver IP', function (t) {
         mod_nic.updateAndGet(t2, {
             mac: d.mac,
             params: updateParams,
-            partialExp: d.partialExp
+            partialExp: d.partialExp,
+            ts: d.ts
         });
     });
 });
@@ -1765,6 +1784,7 @@ test('Update nic - invalid params', function (t) {
 test('Update nic - no changes', function (t) {
     t.plan(8);
     var d = {};
+    var ts = {};
 
     t.test('provision', function (t2) {
         var params = {
@@ -1783,16 +1803,21 @@ test('Update nic - no changes', function (t) {
             net: NET2.uuid,
             params: params,
             state: d,
-            partialExp: partialExp
+            partialExp: partialExp,
+            ts: ts
         });
     });
 
     t.test('update with same params', function (t2) {
+        delete d.nics[0].modified_timestamp;
+
         mod_nic.update(t2, {
             mac: d.nics[0].mac,
             params: d.nics[0],
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            // even though there is no effective change, for now
+            // this should still bump modified_timestamp
+            ts: ts
         });
     });
 
@@ -1800,7 +1825,7 @@ test('Update nic - no changes', function (t) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1813,7 +1838,7 @@ test('Update nic - no changes', function (t) {
                 network_uuid: NET3.uuid
             },
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1821,7 +1846,7 @@ test('Update nic - no changes', function (t) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1834,7 +1859,7 @@ test('Update nic - no changes', function (t) {
                 mac: d.newMAC
             },
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1842,7 +1867,7 @@ test('Update nic - no changes', function (t) {
         mod_nic.get(t2, {
             mac: d.nics[0].mac,
             exp: d.nics[0],
-            ignore: [ 'modified_time' ]
+            ts: ts
         });
     });
 
@@ -1869,6 +1894,8 @@ test('Update nic - change state', function (t) {
         owner_uuid: mod_uuid.v4()
     };
 
+    var ts = {};
+
     t.test('provision', function (t2) {
         mod_nic.provision(t2, {
             net: NET2.uuid,
@@ -1876,7 +1903,8 @@ test('Update nic - change state', function (t) {
             partialExp: extend(params, {
                 ip: h.nextProvisionableIP(NET2),
                 state: constants.DEFAULT_NIC_STATE
-            })
+            }),
+            ts: ts
         });
     });
 
@@ -1888,7 +1916,8 @@ test('Update nic - change state', function (t) {
         mod_nic.update(t2, {
             mac: mod_nic.lastCreated().mac,
             params: updateParams,
-            partialExp: updateParams
+            partialExp: updateParams,
+            ts: ts
         });
     });
 
@@ -1902,6 +1931,7 @@ test('Update nic moray failure getting IP / network', function (t) {
         owner_uuid: mod_uuid.v4()
     };
 
+    var ts = {};
 
     t.test('provision', function (t2) {
         mod_nic.provision(t2, {
@@ -1910,7 +1940,8 @@ test('Update nic moray failure getting IP / network', function (t) {
             partialExp: extend(params, {
                 ip: h.nextProvisionableIP(NET2),
                 network_uuid: NET2.uuid
-            })
+            }),
+            ts: ts
         });
     });
 
@@ -1958,7 +1989,8 @@ test('Update nic moray failure getting IP / network', function (t) {
                 ip: mod_nic.lastCreated().ip,
                 mac: mod_nic.lastCreated().mac,
                 network_uuid: NET2.uuid
-            })
+            }),
+            ts: ts
         });
     });
 
@@ -2073,6 +2105,7 @@ test('Delete nic - IP ownership changed underneath', function (t) {
 test('antispoof options', function (t) {
     t.plan(6);
     var d = {};
+    d.ts = {};
 
     t.test('provision', function (t2) {
         d.params = {
@@ -2089,7 +2122,8 @@ test('antispoof options', function (t) {
         mod_nic.provision(t2, {
             net: NET2.uuid,
             params: d.params,
-            partialExp: d.params
+            partialExp: d.params,
+            ts: d.ts
         }, function (err, res) {
             if (err) {
                 return t2.end();
@@ -2097,6 +2131,7 @@ test('antispoof options', function (t) {
 
             d.exp = res;
             d.mac = res.mac;
+            delete d.exp.modified_timestamp;
             t2.equal(res.ip, h.nextProvisionableIP(NET2), 'IP');
 
             var morayObj = mod_moray.getNic(res.mac);
@@ -2110,7 +2145,8 @@ test('antispoof options', function (t) {
     t.test('get after provision', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            partialExp: d.params
+            partialExp: d.params,
+            ts: d.ts
         });
     });
 
@@ -2128,13 +2164,12 @@ test('antispoof options', function (t) {
         for (var p in d.updateParams) {
             delete d.exp[p];
         }
-        delete d.exp.modified_time;
 
         mod_nic.update(t2, {
             mac: d.mac,
             params: d.updateParams,
             exp: d.exp,
-            fillIn: [ 'modified_time' ]
+            ts: d.ts
         }, function (err, res) {
             if (err) {
                 return t2.end();
@@ -2152,7 +2187,8 @@ test('antispoof options', function (t) {
     t.test('get after disable', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ts: d.ts
         });
     });
 
@@ -2161,13 +2197,12 @@ test('antispoof options', function (t) {
             d.updateParams[p] = true;
             d.exp[p] = true;
         }
-        delete d.exp.modified_time;
 
         mod_nic.update(t2, {
             mac: d.mac,
             params: d.updateParams,
             exp: d.exp,
-            fillIn: [ 'modified_time' ]
+            ts: d.ts
         }, function (err, res) {
             if (err) {
                 return t2.end();
@@ -2185,7 +2220,8 @@ test('antispoof options', function (t) {
     t.test('get after re-enable', function (t2) {
         mod_nic.get(t2, {
             mac: d.mac,
-            exp: d.exp
+            exp: d.exp,
+            ts: d.ts
         });
     });
 });
@@ -2238,6 +2274,7 @@ test('primary uniqueness', function (t) {
         d.macs = [ h.randomMAC(), h.randomMAC() ];
         d.owner = mod_uuid.v4();
         d.zone = mod_uuid.v4();
+        d.ts = [ {}, {} ];
         d.params = {
             belongs_to_type: 'zone',
             belongs_to_uuid: d.zone,
@@ -2251,7 +2288,8 @@ test('primary uniqueness', function (t) {
             params: d.params,
             partialExp: {
                 primary: true
-            }
+            },
+            ts: d.ts[0]
         });
     });
 
@@ -2262,7 +2300,8 @@ test('primary uniqueness', function (t) {
             params: d.params,
             partialExp: {
                 primary: true
-            }
+            },
+            ts: d.ts[1]
         });
     });
 
@@ -2271,7 +2310,8 @@ test('primary uniqueness', function (t) {
             mac: d.macs[0],
             partialExp: {
                 primary: false
-            }
+            },
+            ts: d.ts[0]
         });
     });
 
@@ -2283,7 +2323,8 @@ test('primary uniqueness', function (t) {
             },
             partialExp: {
                 primary: true
-            }
+            },
+            ts: d.ts[0]
         });
     });
 
@@ -2292,95 +2333,12 @@ test('primary uniqueness', function (t) {
             mac: d.macs[1],
             partialExp: {
                 primary: false
-            }
+            },
+            ts: d.ts[1]
         });
     });
 });
 
-test('Modification time updates are sane', function (t) {
-    t.plan(4);
-
-    var d = {
-        mac: h.randomMAC()
-    };
-
-    t.test('create', function (t2) {
-        var params = {
-            belongs_to_type: 'zone',
-            belongs_to_uuid: mod_uuid.v4(),
-            owner_uuid: mod_uuid.v4()
-        };
-
-        mod_nic.createAndGet(t2, {
-            mac: d.mac,
-            params: params,
-            partialExp: { belongs_to_type: 'zone' }
-        }, function (err, res) {
-            t2.ifError(err);
-            if (err) {
-                return t2.end();
-            }
-
-            d.created_time = res.created_time;
-            d.modified_time = res.modified_time;
-            return t2.end();
-        });
-    });
-
-    t.test('modify', function (t2) {
-        mod_nic.updateAndGet(t2, {
-            mac: d.mac,
-            params: {
-                allow_ip_spoofing: true
-            },
-            partialExp: {
-                creation_time: d.creation_time
-            }
-        }, function (err, res) {
-            t2.ifErr(err);
-            if (err) {
-                return t2.end();
-            }
-
-            // XXX Is there ever any danger that create & update
-            // can run in less than the granularity of Date.now()
-            t2.ok(res.modified_time > d.modified_time);
-            d.modified_time = res.modified_time;
-            return t2.end();
-        });
-    });
-
-    t.test('failed modify', function (t2) {
-        mod_nic.update(t2, {
-            mac: d.mac,
-            params: {
-                state: 'spoooooon'
-            },
-            expErr: {
-                code: 'InvalidParameters',
-                errors: [ {
-                    code: 'InvalidParameter',
-                    field: 'state',
-                    message: 'must be one of: "provisioning", "stopped",' +
-                        ' "running"'
-                } ],
-                message: 'Invalid parameters'
-            }
-        });
-    });
-
-    t.test('modification time unchanged', function (t2) {
-        mod_nic.get(t2, {
-            mac: d.mac,
-            partialExp: {
-                creation_time: d.creation_time
-            }
-        }, function (_, res) {
-            t2.ok(d.modified_time === res.modified_time);
-            return t2.end();
-        });
-    });
-});
 
 // --- Listing Tests
 
