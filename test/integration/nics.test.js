@@ -760,10 +760,12 @@ test('PUT /nics/:mac', function (t) {
         client.updateNic(nic.mac, params, function (err, res) {
             h.ifErr(t, err, desc);
 
-            t.equal(res.created_timestamp, crtime, 'created_timestamp unmodified' + desc);
+            t.equal(res.created_timestamp, crtime,
+                'created_timestamp unmodified' + desc);
             t.notEqual(res.modified_timestamp, mtime,
                 'modified_timestamp updated' + desc);
-            t.ok(res.modified_timestamp > mtime, 'modified_timestamp increasing' + desc);
+            t.ok(res.modified_timestamp > mtime,
+                'modified_timestamp increasing' + desc);
             mtime = res.modified_timestamp;
             h.saveTimestamps(state, res, nicNum);
 

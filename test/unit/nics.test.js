@@ -507,7 +507,7 @@ test('Create nic - empty nic_tags_provided', function (t) {
                 owner_uuid: mod_uuid.v4()
             },
             expErr: h.invalidParamErr({
-                errors: [ mod_err.duplicateParam('mac') ],
+                errors: [ mod_err.duplicateParam('mac') ]
             })
         });
     });
